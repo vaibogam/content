@@ -1,0 +1,244 @@
+# Seizure Prediction Based on Transformer Model and Attention Mechanism
+
+VAIBOGAM S. (M21AI623)
+
+
+## Directory Structure
+
+```
+├── Data Processing
+│   ├── EEG Data Extraction from EDF and Processing.ipynb
+│   └── *.xls
+├── LSTM Model
+│   ├── LSTM.py
+│   └── 2-Layer-LSTM.py
+├── Transformer Model
+│   └── transformer.py
+├── Analytical Dashboard
+│   ├── Analytical Dashboard for Training and Validation Metrics.pbix
+│   ├── lstm_metrics_consolidated_v9.csv
+│   └── transformer_consolidated_v2.csv
+├── Output
+│   ├── Processed Data
+│   │   ├── *.csv
+│   │   └── *.zip
+│   ├── LSTM Model
+│   │   ├── lsmt_metrics.csv
+│   │   └── *.pt
+│   ├── Transformer Model
+│   │   ├── transformer_metrics.csv
+│   │   └── *.pt
+│   └── Logs
+│   │   └── logs.zip
+├── README.md
+└── README.html
+```
+
+├── ``Data Processing/``: source code and input summary files
+
+│   ├──  ``EEG Data Extraction from EDF and Processing.ipynb``: Source code for data extraction and segmentation
+
+│   ├──  ``*.xls``: Summary files
+
+
+├── ``LSTM_Model\``: LSTM Model source code
+
+│   ├── ``LSTM.py``: library file for generic LSTM model
+
+│   ├── ``2-Layer-LSTM.py``: job file to process the input, train the model, save models
+
+
+├── ``Transformer_Model\``: Transformer Model source code
+
+│   ├──     ``tranformer.py``: job file to process the input, train the model and save models
+
+
+├── ``Analytical Dashboard``: Analytical dashboard for visualizing training and validation metrics and getting insights.
+
+│   ├── ``Analytical Dashboard for Training and Validation Metrics.pbix``: Power BI Dashboard file. Require [Power BI Desktop](https://www.microsoft.com/en-US/download/details.aspx?id=58494) to open this file
+
+│   ├── ``lstm_metrics_consolidated_v9.csv`` - consolidated LSTM metrics file
+
+│   ├── ``transformer_metrics_v2.csv`` - consolidated Transformer metrics file
+
+    
+
+## Installation
+
+Use the package manager pip to install necessary packages.
+
+```bash
+pip install mne
+pip install torch
+pip install torchvision
+pip install matplotlib
+```
+
+
+## 1) Data Extraction
+
+The raw EEG data extraction from .edf files for different types of EEG signals (interictal, preictal and ictal) and save them into CSV. 
+
+The raw data has been extracted from .edf files and created csv file for various durations and different starting position. For eg. 5 seconds preictal pre-processed data file is created with 5 seconds data from all seizure data file, starting at 60 seconds before the seizure, 55 seconds before, until 10 seconds before. So, we will have final 5 seconds to alert. Similarly, 10 seconds preictal files created starting at 60 seconds to 20 seconds, etc. 
+
+#### Input Summary Files
+The below summary files contain the list of all seizure files with period information and interictal files list. Separated them for 23 and 18 channels.
+
+- ``chb-mit-ictal-preictal-summary-sheet_18channels.xls`` 
+- ``chb-mit-ictal-preictal-summary-sheet_23channels.xls``
+- ``chb-mit-interictal-summary-sheet_18channels.xls``
+- ``chb-mit-interictal-summary-sheet_23channels.xls``
+
+
+#### Input Raw Data Files
+Download from the [CHB-MIT database](https://physionet.org/content/chbmit/1.0.0/). And extract them into a folder. Update the folder path in the code before executing.
+
+### Code
+``EEG Data Extraction from EDF and Processing.ipynb`` - Open this in a jupyter notebook or Colab. Update the following parameters before executing the cells.
+
+```python
+# input edf folder path, summary file path and name
+data_base_path              = f"C:/chb-mit-scalp-eeg-database-1.0.0/"
+data_summary_folder         = f"C:/chb-mit-scalp-eeg-database-1.0.0/"
+data_output_folder          = f"C:/chb-mit-scalp-eeg-database-1.0.0/processed_data/"
+interictal_summary_path     = "chb-mit-interictal-summary-sheet_23channels.xls"
+preictal_ictal_summary_path = "chb-mit-ictal-preictal-summary-sheet_23channels.xls"
+
+# whether interictal extraction size matches preictal extraction size
+random_interictal_to_match_with_preictal = True
+
+```
+
+
+## 2. LSTM Model
+
+### Code
+``LSTM.py``: library file for generic LSTM model
+
+``2-Layer-LSTM.py``: job file to process the input, train the model, save models
+
+
+### Usage
+```
+$python 2_layer_LSTM.py --help
+usage: 2_layer_LSTM.py [-h] [--input_path INPUT_PATH]
+                          [--preictal_file PREICTAL_FILE]
+                          [--interictal_file INTERICTAL_FILE]
+                          [--output_path OUTPUT_PATH]
+                          [--model_file_prefix MODEL_FILE_PREFIX]
+                          [--metrics_file METRICS_FILE] [--epochs EPOCHS]
+                          [--bs BS] [--lr LR] [--ws WS] [--hll HLL]
+```
+
+Optional arguments with default values:
+```
+  -h, --help            show this help message and exit
+  --input_path="input_data" 
+                        Path to input files
+  --preictal_file="preictal.csv"
+                        Name of preictal file
+  --interictal_file="interictal.csv"
+                        Name of interictal file
+  --output_path="model_output"
+                        Path for output files
+  --model_file_prefix="default_model"
+                        Prefix for model file names
+  --metrics_file="metrics.csv"
+                        Consolidated metrics file name
+  --epochs=50           Number of epochs
+  --bs=100              Batch size
+  --lr=0.0001           Learning rate
+  --ws=100              Window size
+  --hll=500             Hidden layer length
+```
+
+#### Sample command
+```
+$2_layer_LSTM.py --input_path=/workspace/data/chb-mit-scalp-eeg-database-1.0.0-processed-data/
+    --preictal_file=preictal_60sec.csv --interictal_file=interictal_60sec_random.csv 
+    --output_path=/workspace/data/lstm/output_60sec_random_bs50_ws50_hll500 
+    --model_file_prefix=60sec_random_bs50_ws50_hll500 
+    --epochs=500 --bs=50 --lr=0.0001 --ws=50 --hll=500 
+    --metrics_file=/workspace/data/lstm/lstm_metrics.csv
+```
+
+### Output
+This will save the training and validation metrics into the metrics file at every 5 epoch and save the model under output path. This also save the **training accuracy vs epoch and loss vs epoch graphs** in the model output path. We can look at these to analysis the trend.
+
+## 3. Transformer Model
+### Code
+
+``tranformer.py``: job file to process the input, train the model and save models. It will load the earlier model from model output directory if exists. So, it will run from the epoch where it got terminated / interrupted.  
+
+### Usage
+Update the following parameters before executing the transformer.py file.
+```python
+# input files
+data_base_path         = '/workspace/data/chb-mit-scalp-eeg-database-1.0.0-processed-data/'
+interictal_data_file   = 'interictal_23channels_5sec_random.csv'
+preictal_data_file     = 'preictal_23channels_5sec_10start.csv'
+
+# model output path
+model_path             = '/workspace/data/5sec_random_preictal_5sec_10start_bs200/'
+
+# Update the hyperparameters
+num_epochs      = 500
+win             = 50 # Window_size
+batch_size      = 200
+learning_rate   = 0.0001
+n_heads         = 2
+enc_layers      = 1
+
+
+```
+
+
+### Output
+This will save the training metrics into a csv file and save the model at every 5 epochs into output path. The automatic validation accuracy was not captured here unlike the LSTM model. Need to include similar code here to reduce the manual work.
+
+## 4. Analytical Dashboard
+Numerous models were trained using varying input lengths and hyperparameters, resulting in the generation of a substantial amount of performance indicator metadata. This interactive dashboard help in analyzing metrics related to training and testing. The primary objective of this dashboard is to present the data in a visual format, enabling the acquisition of valuable insights, identification of the most suitable model, and subsequent refinement of said model.
+
+### Dashboard (Code)
+``Analytical Dashboard for Training and Validation Metrics.pbix``: Power BI Dashboard file. This requires [Power BI Desktop](https://www.microsoft.com/en-US/download/details.aspx?id=58494) to view the dashboard and analysis. It uses the metrics file (``lstm_metrics_consolidated_v9.csv``) generated by the LSTM model and manually captured transformer metrics file (``transformer_consolidated_v2.csv``). This path can be updated in the report data transformer section when require data refresh. 
+
+
+## 5. NVIDA DGX2 System
+Used IITJ lab system to run most of the trainings. All the preprocessed data, yaml job files, logs, saved models, metrics are available in the node.
+
+### Usage
+
+Using putty and scp to ``vaibogam1@10.6.0.99`` (personal message for password)
+
+``$/home/vaibogam1/``
+
+``./jobs_yaml_files/``: The job files submitted for various model types
+
+``./logs/``: Output log of all runs
+
+``./finished_models/``: - All the models output in compressed file
+
+``./preprocessed_data/``: some of the preproccessed data in zip format.
+
+
+Login into the pod for saved models and metrics details
+
+```
+$kubectl exec -it  vaibogam13  /bin/bash
+$cd data
+```
+``./*interictal_23channels*``: all the transformer model outputs
+
+``./lstm``: all the LSTM model output
+
+``./chb-mit-scalp-eeg-database-1.0.0-processed-data/*.csv``: EEG csv data files extracted from .edf files.
+
+``./lstmlstm_metrics.csv``: model metrics
+
+``./lstmlstm_metrics_10sec.csv``: model metrics
+
+
+
+## Contact
+VAIBOGAM S. (M21AI623) [vaibogam.1@iitj.ac.in](mailto:vaibogam.1@iitj.ac.in)
+
